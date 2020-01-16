@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script th:src="@{/jquery/jquery-3.3.1.min.js}" src="../static/jquery/jquery-3.3.1.min.js"></script>
+    <script>
+       /* function joinList(id) {
+            $.get("/joinList",{id:id})
+        }*/
+       function recoveryTime(id) {
+           $.get("/changTime",{id:id});
+       }
+    </script>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>委托方</th>
+            <th>应价标的</th>
+            <th>品种</th>
+            <th>数量（吨）</th>
+            <th>应价</th>
+        </tr>
+        <tr>
+            <form th:action="@{/submit}" method="get">
+            <td>华南粮食</td>
+            <td th:text="${grain.id}"></td>
+            <td th:text="${grain.varieties}"></td>
+            <td th:text="${grain.num}"></td>
+            <td><input id="newPrice" name="newPrice" th:value="${grain.newPrice}"></td>
+                <input hidden name="id" th:value="${grain.id}">
+                <input id="uuid" hidden name="uuid" th:value="${uuid}">
+            <td><input type="submit" value="应价" th:onclick="recoveryTime([[${grain.id}]])"></td>
+            </form>
+        </tr>
+    </table>
+</body>
+</html>

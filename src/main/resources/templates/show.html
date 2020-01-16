@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Grain</title>
+    <script th:src="@{/jquery/jquery-3.3.1.min.js}" src="../static/jquery/jquery-3.3.1.min.js"></script>
+    <script th:src="@{/jquery/jquery.cookie.js}" ></script>
+    <script>
+
+        //生成uuid
+        function uuid(len, radix) {
+            var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+            var uuid = [], i;
+            radix = radix || chars.length;
+
+            if (len) {
+                // Compact form
+                for (i = 0; i < len; i++) uuid[i] = chars[0 | Math.random()*radix];
+            } else {
+                // rfc4122, version 4 form
+                var r;
+
+                // rfc4122 requires these characters
+                uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+                uuid[14] = '4';
+
+                // Fill in random data.  At i==19 set the high bits of clock sequence as
+                // per rfc4122, sec. 4.1.5
+                for (i = 0; i < 36; i++) {
+                    if (!uuid[i]) {
+                        r = 0 | Math.random()*16;
+                        uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+                    }
+                }
+            }
+
+            return uuid.join('');
+        }
+
+       /* function recoveryTime(id) {
+            $.get("/changTime",{id:id});
+        }*/
+
+        //0.5秒发送一次Ajax请求刷新页面数据
+        function show() {
+            setTimeout(
+                function () {
+                    //刷新竞争表的信息
+                    $.get("/show",function (grain) {
+                       for(a in grain){
+                           //刷新价格
+                           var priceId = '.newPrice'+grain[a].id;
+                            $(priceId).text(grain[a].newPrice);
+                           //刷新时间
+                            var countTimId = '.CountTim'+grain[a].id;
+                           $(countTimId).text(grain[a].time);
+                           //时间为0时隐藏该信息
+                           if(grain[a].time==0){
+                                //alert("我是0");
+                                var grainId = '.grain'+grain[a].id;
+                                $(grainId).hide();
+                                //$(grainId).attr("style","display:none;");
+                           }
+                       }
+                    });
+                    $.get("/checkMessage",function (messageList) {
+                        for(i in messageList){
+                            var priceId = "#newPrice"+messageList[i].id;
+                            var messageId = "#message"+messageList[i].id;
+                            var nowPrice = $(priceId).text();
+                            var oldPrice = messageList[i].price;
+                            if(nowPrice==oldPrice){
+                                $(messageId).text("成功");
+                            }else {
+                                var j = $(messageId).attr("sgin");
+                                if(j==0) {
+                                    var a = '<input type="submit" value="我要应价" onclick="doSomething('+messageList[i].id+')">';
+                                    $(messageId).text("");
+                                    $(messageId).append(a);
+                                    $(messageId).attr("sgin","1");
+                                }
+                            }
+                        }
+                    });
+                    show();
+                },500
+            )
+        }
+        /*function successListShow() {
+            $.get("/successListShow",{})
+        }*/
+        //应价后的再次应价按钮
+        function doSomething(id) {
+            var i= "/one/"+id+"?uuid=00109900";
+            window.location=$(location).attr('href')+i;
+        }
+
+        function showSuccessList() {
+            $.get("/showSuccessList",function (successGrain) {
+                // alert(successGrain);
+                for(i in successGrain) {
+                    var html =
+                        '<tr class="grain'+successGrain[i].id+'">'+
+                            '<form action="/one/'+successGrain[i].id+'" method="get">'+
+                                '<td name="id">'+successGrain[i].id+'</td>'+
+                                '<td name="varieties">'+successGrain[i].varieties+'</td>'+
+                                '<td name="grade">'+successGrain[i].grade+'</td>'+
+                                '<td name="produceTime">'+successGrain[i].produceTime+'</td>'+
+                                '<td name="num">'+successGrain[i].num+'</td>'+
+                                '<td name="address">'+successGrain[i].address+'</td>'+
+                                '<td name="firstPrice">'+successGrain[i].firstPrice+'</td>'+
+                                '<td class="newPrice'+successGrain[i].id+'" name="newPrice">'+successGrain[i].newPrice+'</td>'+
+                                '<td>'+'<span class="CountTim'+successGrain[i].id+'" style="color:red" >'+'</span>'+'</td>'+
+                                '<td>'+'<input hidden class="uuid" name="uuid" value="53153153">'+'</td>'+
+                                '<td id="message'+successGrain[i].id+'" sgin="0">'+'成功'+'</td>'+
+                            '</form>'+
+                        '</tr>';
+                    $("#successGrainList").append(html);
+                }
+
+            });
+        }
+        $(function () {
+            var UUID = uuid(8,10);
+            $(".uuid").val(UUID);
+            show();
+            showSuccessList();
+        })
+    </script>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>标的</th>
+            <th>品种</th>
+            <th>等级</th>
+            <th>生产/入库时间</th>
+            <th>数量（吨）</th>
+            <th>库点</th>
+            <th>仓号</th>
+            <th>堆位</th>
+            <th>起点价</th>
+            <th>最新价</th>
+            <th>倒计时</th>
+            <th>状态</th>
+        </tr>
+
+        <tr th:class="grain+${grain.id}" th:each="grain :${grainList}">
+            <form th:action="@{/one/}+${grain.id}" method="get">
+            <td name="id" th:text="${grain.id}"></td>
+            <td name="varieties" th:text="${grain.varieties}"></td>
+            <td name="grade" th:text="${grain.grade}"></td>
+            <td name="produceTime" th:text="${grain.produceTime}"></td>
+            <td name="num" th:text="${grain.num}"></td>
+            <td name="address" th:text="${grain.address}"></td>
+            <td> </td>
+            <td>/</td>
+            <td name="firstPrice" th:text="${grain.firstPrice}"></td>
+            <td th:id="newPrice+${grain.id}" th:class="newPrice+${grain.id}" name="newPrice" th:text="${grain.newPrice}"></td>
+                <input hidden class="uuid" name="uuid">
+            <td><span th:class="CountTim+${grain.id}" style="color:red" >[[${grain.time}]]</span></td>
+            <td><input type="submit" value="我要应价" ></td>
+            </form>
+        </tr>
+    </table>
+
+    <hr/>
+    <table id="successGrainList">
+        <tr >
+            <th>标的</th>
+            <th>品种</th>
+            <th>等级</th>
+            <th>生产/入库时间</th>
+            <th>数量（吨）</th>
+            <th>库点</th>
+            <th>起点价</th>
+            <th>最新价</th>
+            <th>倒计时</th>
+            <th>状态</th>
+        </tr>
+
+    </table>
+
+
+
+
+
+
+</body>
+</html>
